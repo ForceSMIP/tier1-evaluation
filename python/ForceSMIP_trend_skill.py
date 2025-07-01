@@ -3,7 +3,7 @@ import xcdat as xc
 import glob
 import numpy as np
 import xarray as xr
-from fx import get_delta_trend, seasonal_average, global_mean
+from fx import get_delta_trend, seasonal_average, global_mean, plot_taylor
 
 # %% Parameters
 variable = 'tos'
@@ -79,12 +79,9 @@ for j, member in enumerate(members):
     nanmember = fields.isel(member=0).copy()
     nanmember[:] = np.nan
     tmp = []
-    nm = 0
     ## Note: need to test this for zmta
     for im in simplicity_order:
         if np.isnan(im):
-            nanmember.member = 'nanmember' + str(nm)
-            nm += 1
             tmp.append(nanmember)
         else:
             tmp.append(fields.isel(member=im-1))

@@ -1,6 +1,7 @@
 # imports
 import xarray as xr
 import numpy as np
+import matplotlib.pyplot as plt
 
 # helper functions
 def get_delta_trend(data, startyear, endyear):
