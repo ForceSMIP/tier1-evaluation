@@ -66,7 +66,10 @@ def global_mean(data):
                            dims=['lat'],
                            coords={'lat': data.lat})
     daw = data.weighted(weights)
-    return daw.mean(dim=('lat', 'lon'))
+    if 'lon' in data.dims:
+        return daw.mean(dim=('lat', 'lon'))
+    else:
+        return daw.mean(dim=('lat', 'plev'))
 
 def plot_taylor(STDs, STD_ref, CORs, labels, xmin=None, xmax=None, ymax=None, cmax=None, cticks=None):
     plt.figure(figsize=(6, 6.5))

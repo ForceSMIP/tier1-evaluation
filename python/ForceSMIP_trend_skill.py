@@ -6,8 +6,8 @@ import xarray as xr
 from fx import get_delta_trend, seasonal_average, global_mean, plot_taylor
 
 # %% Parameters
-variable = 'tos'
-dpath = '/p/user_pub/climate_work/pochedley1/ForceSMIP_Tier1_final/'
+variable = 'psl'
+dpath = '/global/cfs/cdirs/m4581/pochedls/ForceSMIP_Tier1_final/'
 members = ['1B','1D','1E','1G','1J']
 season = 'annual'
 obs_member = '1I'
@@ -42,9 +42,9 @@ for j, member in enumerate(members):
     print(str(j+1) + ' / ' + str(len(members)) + ': ' + member)
     # get simplicity order
     if variable == 'zmta':
-        simplicity_order = [np.nan, 2, 1, 12, 13, 17, 18, 14, np.nan, 10, 15, 16, 4, 8, 9, np.nan, 3, 19, np.nan, np.nan, 20, 5, 11, np.nan, 22, 21, np.nan, 6, 7, np.nan];
+        simplicity_order = [np.nan, 2, 1, 12, 13, 17, 18, 14, 10, 15, 16, 4, np.nan, 8, 9, np.nan, 19, 20, 3, np.nan, np.nan, 5, 11, np.nan, 22, 21, np.nan, 6, 7, np.nan]
     else:
-        simplicity_order = [26, 3, 1, 16, 17, 21, 22, 18, 8, 14, 19, 20, 7, 12, 13, 27, 5, 23, 24, 2, 28, 9, 15, 6, 30, 29, 25, 10, 11, 4];
+        simplicity_order = [27, 3, 1, 16, 17, 21, 22, 18, 14, 19, 20, 7, 8, 12, 13, 26, 23, 28, 5, 24, 2, 9, 15, 6, 30, 29, 25, 10, 11, 4]
     # get submission, ensemble mean, and reference files
     submission_file = [fn for fn in submission_files if '/' + variable + '_' + member in fn][0]
     ## NOTE: Why do we take 1A if it is obs?
@@ -109,10 +109,16 @@ for j, member in enumerate(members):
     # get trends
     trends = get_delta_trend(fields_seasonal, startyear, endyear)
     trend_ref = get_delta_trend(field_ref, startyear, endyear)
-    trend_emean = get_delta_trend(field_emean, startyear, endyear)
+    trend_emean = get_delta_trend(field_emean, startyear, endyear).squeeze()
 
     # ensure common mask
     if variable in ('tos', 'zmta'):
+        if variable == 'zmta':
+            if ((np.any(np.abs(trend_ref.plev.values - trends.plev.values) > 1E-7)) | (np.any(np.abs(trend_emean.plev.values - trends.plev.values) > 1E-7))):
+                raise ValueError('plev coordinates do not match')
+            else:
+                trend_ref['plev'] = trends.plev
+                trend_emean['plev'] = trends.plev
         trends = xr.where(~np.isnan(trend_ref), trends, np.nan)
         trend_emean = xr.where(~np.isnan(trend_ref), trend_emean, np.nan)
 
@@ -209,5 +215,5 @@ outliers = RMSs > q75*2  # not implemented yet
 # note I changed the first label to "Correct Answer"
 labels = ['Correct Answer','RAW','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30']
 
-plot_taylor(STDs, std_ref, CORs, labels, xmin=0.6, xmax=1.2, ymax=0.69, cmax=0.8, cticks=25)
+plot_taylor(STDs, std_ref, CORs, labels, xmin=0., xmax=1.3, ymax=2, cmax=1.8, cticks=25)
 
