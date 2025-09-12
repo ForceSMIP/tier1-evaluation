@@ -4,12 +4,12 @@
 % plotting trend_ref, trends(:,:,i), and trends(:,:,i)-trend_ref
 % Figs. 8-10 can be made by plotting trend_ref, trends(:,:,i), and trends(:,:,i)-trend_ref
 
-variable = 'zmta'; % 'tos','tas','pr','psl','monmaxpr','monmaxtasmax','monmintasmin','zmta'
+variable = 'tos'; % 'tos','tas','pr','psl','monmaxpr','monmaxtasmax','monmintasmin','zmta'
 season = 1:12; % for seaonal mean (1:12 makes annual mean)
 
 clear fields_seasonal
 
-submission_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/submissions-Tier1-standardized-estimates');
+submission_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/submissions-Tier1-estimates');
 emean_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/ensmeans-Tier1');
 ref_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/Evaluation-Tier1');
 
@@ -43,18 +43,14 @@ n2 = endyear - 1950 + 1;
 clear fields_seasonal
 
 rmse_ref = zeros(1,length(member)); std_emean = rmse_ref; std_ref = rmse_ref; corr_ref = rmse_ref;
-rmse_all = zeros(s(4),length(member)); std_all = rmse_all; corr_all = rmse_all;
+rmse_all = zeros(30,length(member)); std_all = rmse_all; corr_all = rmse_all;
 
 for j = 1:length(member)
     
     % specifying simplicity ordering used in Wills et al. 2025
     if strcmp(variable,'zmta')
-        %simplicity_order = [nan 2 1 12 13 17 18 14 nan 10 15 16 4 8 9 nan 3 19 nan nan 20 5 11 nan 22 21 nan 6 7 nan];
-        % with RegGMST and RegGMST-LENSem switched (until data files are updated)
         simplicity_order = [nan 2 1 12 13 17 18 14 10 15 16 4 nan 8 9 nan 19 20 3 nan nan 5 11 nan 22 21 nan 6 7 nan];
     else
-        %simplicity_order = [26 3 1 16 17 21 22 18 8 14 19 20 7 12 13 27 5 23 24 2 28 9 15 6 30 29 25 10 11 4];
-        % with RegGMST and RegGMST-LENSem manually switched (until data files are updated)
         simplicity_order = [27 3 1 16 17 21 22 18 14 19 20 7 8 12 13 26 23 28 5 24 2 9 15 6 30 29 25 10 11 4];
     end
 
@@ -142,9 +138,15 @@ for j = 1:length(member)
     end
 
     % compute linear trends (in units per period length) 
-    [~,trend_ref] = detrend(field_ref(:,:,n1:n2),3,1);
-    [~,trend_emean] = detrend(field_emean(:,:,n1:n2),3,1);
-    [~,trends] = detrend(fields_seasonal(:,:,n1:n2,:),3,1);
+    if season(1)>season(end) % e.g., [12 1 2] = DJF
+        [~,trend_ref] = detrend(field_ref(:,:,n1:n2-1),3,1);
+        [~,trend_emean] = detrend(field_emean(:,:,n1:n2-1),3,1);
+        [~,trends] = detrend(fields_seasonal(:,:,n1:n2-1,:),3,1);
+    else
+        [~,trend_ref] = detrend(field_ref(:,:,n1:n2),3,1);
+        [~,trend_emean] = detrend(field_emean(:,:,n1:n2),3,1);
+        [~,trends] = detrend(fields_seasonal(:,:,n1:n2,:),3,1);
+    end
     trends = squeeze(trends);
 
     % apply uniform NaNs to all fields (in case of any differences)
@@ -247,8 +249,13 @@ for i = 1:s(4)
 end
 
 % compute linear trends (in units per period length) 
-[~,trend_ref] = detrend(field_ref(:,:,n1+1:n2),3,1);
-[~,trends] = detrend(fields_seasonal(:,:,n1+1:n2,:),3,1);
+if season(1)>season(end) % e.g., [12 1 2] = DJF
+    [~,trend_ref] = detrend(field_ref(:,:,n1+1:n2-1),3,1);
+    [~,trends] = detrend(fields_seasonal(:,:,n1+1:n2-1,:),3,1);
+else
+    [~,trend_ref] = detrend(field_ref(:,:,n1+1:n2),3,1);
+    [~,trends] = detrend(fields_seasonal(:,:,n1+1:n2,:),3,1);
+end
 trends = squeeze(trends);
 
 % apply uniform NaNs to all fields (in case of any differences)

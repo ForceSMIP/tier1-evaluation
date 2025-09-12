@@ -44,12 +44,8 @@ for k = 1:length(variables)
 
     for j = 1:length(member)
         if strcmp(variable,'zmta')
-            %simplicity_order = [nan 2 1 12 13 17 18 14 nan 10 15 16 4 8 9 nan 3 19 nan nan 20 5 11 nan 22 21 nan 6 7 nan];
-            % with RegGMST and RegGMST-LENSem switched (until data files are updated)
             simplicity_order = [nan 2 1 12 13 17 18 14 10 15 16 4 nan 8 9 nan 19 20 3 nan nan 5 11 nan 22 21 nan 6 7 nan];
         else
-            %simplicity_order = [26 3 1 16 17 21 22 18 8 14 19 20 7 12 13 27 5 23 24 2 28 9 15 6 30 29 25 10 11 4];
-            % with RegGMST and RegGMST-LENSem manually switched (until data files are updated)
             simplicity_order = [27 3 1 16 17 21 22 18 14 19 20 7 8 12 13 26 23 28 5 24 2 9 15 6 30 29 25 10 11 4];
         end
 
