@@ -8,12 +8,20 @@ end
 
 year_new = year(1):year(end);
 
-if month(1) == 12 % models where file begins with December
-    year_new = year(2):year(end);
-    year(1:12:end) = year(1:12:end)+1;
-elseif months(1) == 12  % DJF correction, group D with following year
+if months(1)>months(end)
     year_new = year(1)+1:year(end);
-    year(12:12:end) = year(12:12:end)+1;
+    if months(1) <= 12  % DJF correction, group D with following year
+        year(12:12:end) = year(12:12:end)+1;
+        if months(1) <= 11
+            year(11:12:end) = year(11:12:end)+1;
+            if months(1) <= 10
+                year(10:12:end) = year(10:12:end)+1;
+                if months(1) <= 9
+                    year(9:12:end) = year(9:12:end)+1;
+                end
+            end
+        end
+    end
 end
 
 s = size(data_monthly);
