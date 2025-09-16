@@ -9,7 +9,7 @@ from fx import get_delta_trend, seasonal_average, global_mean, plot_taylor
 variable = 'psl'
 dpath = '/global/cfs/cdirs/m4581/pochedls/ForceSMIP_Tier1_final/'
 members = ['1B','1D','1E','1G','1J']
-season = 'annual'
+season = 'DJF'
 obs_member = '1I'
 startyear = 1980
 endyear = 2022
@@ -27,6 +27,14 @@ submission_short_names = {'RegGMST', '4th-Order-Polynomial', '10yr-Lowpass', 'LF
 seasons = xr.DataArray(data=['DJF', 'MAM', 'JJA', 'SON'],
                        dims='season',
                        coords={'season': ['DJF', 'MAM', 'JJA', 'SON']})
+plot_params = {'tos': {'xmin': 0.6, 'xmax': 1.3, 'ymax': 0.7, 'cmax': 0.8, 'cticks': 25},
+               'tas': {'xmin': 0.6, 'xmax': 1.2, 'ymax': 0.55, 'cmax': 0.7, 'cticks': 22},
+               'pr': {'xmin': 0., 'xmax': 1.3, 'ymax': 2.15, 'cmax': 2.4, 'cticks': 25},
+               'psl': {'xmin': 0., 'xmax': 1.3, 'ymax': 1.4, 'cmax': 1.8, 'cticks': 19},
+               'monmaxpr': {'xmin': 0., 'xmax': 1.3, 'ymax': 3.32, 'cmax': 3.6, 'cticks': 19},
+               'monmaxtasmax': {'xmin': 0.6, 'xmax': 1.2, 'ymax': 0.57, 'cmax': 0.7, 'cticks': 22},
+               'monmintasmin': {'xmin': 0.4, 'xmax': 1.3, 'ymax': 0.8, 'cmax': 1., 'cticks': 21},
+               'zmta': {'xmin': 0.9, 'xmax': 1.2, 'ymax': 0.4, 'cmax': 0.45, 'cticks': 19}}
 
 # %% get files
 submission_files = glob.glob(dpath + 'submissions_standardized/*nc')
@@ -215,5 +223,10 @@ outliers = RMSs > q75*2  # not implemented yet
 # note I changed the first label to "Correct Answer"
 labels = ['Correct Answer','RAW','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30']
 
-plot_taylor(STDs, std_ref, CORs, labels, xmin=0., xmax=1.3, ymax=2, cmax=1.8, cticks=25)
+plot_taylor(STDs, std_ref, CORs, labels,
+            xmin=plot_params[variable]['xmin'],
+            xmax=plot_params[variable]['xmax'],
+            ymax=plot_params[variable]['ymax'],
+            cmax=plot_params[variable]['cmax'],
+            cticks=plot_params[variable]['cticks'])
 

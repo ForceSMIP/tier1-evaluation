@@ -19,14 +19,18 @@ def seasonal_average(data, season, mode):
         return data.groupby(data.time.dt.year).mean("time")
     # get vectors of years / months
     months = data.time.dt.month
-    years = data.time.dt.year
+    # we skip the first JF and use the first full DJF average
+    if season == 'DJF':
+        years = data.time.dt.year + 1
+    else:
+        years = data.time.dt.year
     # get original time vector (to be modified if needed for DJF)
     time = data.time.copy()
     # set December values to year+1 (so that they can be averaged
     # with JF of the following year)
     if season == 'DJF':
         # make sure time series starts with January
-        # we take JF as the first DJF average
+        # we skip the first JF and use the first full DJF average
         if time.values[0].month != 1:
             ValueError("Expecting array to start in January")
         # find December months
@@ -112,7 +116,7 @@ def plot_taylor(STDs, STD_ref, CORs, labels, xmin=None, xmax=None, ymax=None, cm
         ycorr = xi * np.tan(np.arccos(r))
         plt.plot(xi, ycorr,'k')
         yticks.append(np.interp(xmax, xi, ycorr))
-        yticklabels.append(r)
+        yticklabels.append('{0:.2f}'.format(np.round(r, 2)))
     ax = plt.gca()
     plt.yticks(yticks, labels=yticklabels)
     plt.plot([0, 0],[0, ymax], 'k', linewidth=1.5)
