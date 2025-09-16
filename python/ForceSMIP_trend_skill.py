@@ -115,10 +115,14 @@ for j, member in enumerate(members):
     fields_seasonal = seasonal_average(fields, season, mode)
 
     # get trends
-    trends = get_delta_trend(fields_seasonal, startyear, endyear)
-    trend_ref = get_delta_trend(field_ref, startyear, endyear)
-    trend_emean = get_delta_trend(field_emean, startyear, endyear).squeeze()
-
+    if season == 'DJF':
+        trends = get_delta_trend(fields_seasonal, startyear+1, endyear)
+        trend_ref = get_delta_trend(field_ref, startyear+1, endyear)
+        trend_emean = get_delta_trend(field_emean, startyear+1, endyear).squeeze()
+    else:
+        trends = get_delta_trend(fields_seasonal, startyear, endyear)
+        trend_ref = get_delta_trend(field_ref, startyear, endyear)
+        trend_emean = get_delta_trend(field_emean, startyear, endyear).squeeze()
     # ensure common mask
     if variable in ('tos', 'zmta'):
         if variable == 'zmta':
