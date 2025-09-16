@@ -6,27 +6,19 @@ import xarray as xr
 from fx import get_delta_trend, seasonal_average, global_mean, plot_taylor
 
 # %% Parameters
-variable = 'psl'
+variable = 'tas'
 dpath = '/global/cfs/cdirs/m4581/pochedls/ForceSMIP_Tier1_final/'
 members = ['1B','1D','1E','1G','1J']
-season = 'DJF'
+season = 'annual' # annual, DJF, MAM, JJA, SON
 obs_member = '1I'
 startyear = 1980
 endyear = 2022
-variableDict = {'monmaxtaxmax': 'tasmax',
+
+# loop up dictionaries
+variableDict = {'monmaxtasmax': 'tasmax',
                 'monmaxpr': 'pr',
                 'monmintasmin': 'tasmin',
                 'zmta': 'ta'}
-submission_short_names = {'RegGMST', '4th-Order-Polynomial', '10yr-Lowpass', 'LFCA', 'LFCA-2',
-                          'MF-LFCA', 'MF-LFCA-2', 'LIMnMCA', 'DMDc', 'ICA-lowpass', 'LIMopt',
-                          'LIMopt-filter', 'Colored-LIMnMCA', 'GPCA', 'GPCA-DA', 'RegGMST-LENSem',
-                          'AllFinger', 'MLR-Forcing', 'MonthFinger', '3DUNet-Fingerprinters',
-                          'SNMP-OF', 'EOF-SLR', 'LDM-SLR', 'Anchor-OPLS', 'UNet3D-LOCEAN',
-                          'TrainingEM', 'RandomForest', 'EncoderDecoder', 'EnsFMP',
-                          'ANN-Fingerprinters'};
-seasons = xr.DataArray(data=['DJF', 'MAM', 'JJA', 'SON'],
-                       dims='season',
-                       coords={'season': ['DJF', 'MAM', 'JJA', 'SON']})
 plot_params = {'tos': {'xmin': 0.6, 'xmax': 1.3, 'ymax': 0.7, 'cmax': 0.8, 'cticks': 25},
                'tas': {'xmin': 0.6, 'xmax': 1.2, 'ymax': 0.55, 'cmax': 0.7, 'cticks': 22},
                'pr': {'xmin': 0., 'xmax': 1.3, 'ymax': 2.15, 'cmax': 2.4, 'cticks': 25},
@@ -40,6 +32,8 @@ plot_params = {'tos': {'xmin': 0.6, 'xmax': 1.3, 'ymax': 0.7, 'cmax': 0.8, 'ctic
 submission_files = glob.glob(dpath + 'submissions_standardized/*nc')
 emean_files = glob.glob(dpath + 'ensmeans/*nc')
 ref_files = glob.glob(dpath + 'Evaluation-Tier1/*nc')
+
+# get variable id
 if variable in variableDict.keys():
     varnam = variableDict[variable]
 else:
@@ -83,7 +77,6 @@ for j, member in enumerate(members):
     field_ref = field_ref.where(field_ref < 1e10, np.nan)
 
     # Re-order data in simplicity order
-    # note: need to revisit this for zmta which has nan values
     nanmember = fields.isel(member=0).copy()
     nanmember[:] = np.nan
     tmp = []
@@ -96,12 +89,20 @@ for j, member in enumerate(members):
     fields = xr.concat(tmp, dim='member')
 
     # get monthly departures
-    climref = fields.groupby('time.month').mean(dim='time')
-    fields = fields.groupby('time.month') - fields.groupby('time.month').mean(dim='time')
-    field_emean = field_emean.groupby('time.month') - field_emean.groupby('time.month').mean(dim='time')
-    field_ref = field_ref.groupby('time.month') - field_ref.groupby('time.month').mean(dim='time')
+    climref = field_ref.groupby('time.month').mean(dim='time')
+    if (('max' in variable) | ('min' in variable)):
+        fields = fields.groupby('time.month') - fields.groupby('time.month').mean(dim='time')
+        field_emean = field_emean.groupby('time.month') - field_emean.groupby('time.month').mean(dim='time')
+        field_ref = field_ref.groupby('time.month') - field_ref.groupby('time.month').mean(dim='time')
+        fields = fields.groupby('time.month')  + climref
+        field_emean = field_emean.groupby('time.month') + climref
+        field_ref = field_ref.groupby('time.month') + climref
+    else:
+        fields = fields.groupby('time.month') - fields.groupby('time.month').mean(dim='time')
+        field_emean = field_emean.groupby('time.month') - field_emean.groupby('time.month').mean(dim='time')
+        field_ref = field_ref.groupby('time.month') - field_ref.groupby('time.month').mean(dim='time')
 
-    # create seasonal means
+    # select aggregation mode
     if 'max' in variable:
         mode = 'max'
     elif 'min' in variable:
@@ -145,7 +146,6 @@ for j, member in enumerate(members):
         corr_all = np.zeros((len(trends.member), len(members)))
 
     # compute stats
-    # Note: Need to deal with vertical grid in vertical averager
     rmse_ref[j] = np.sqrt(global_mean((trend_emean-trend_ref)**2))
     rmse_all[:, j] = np.sqrt(global_mean((trend_emean-trends)**2))
 
@@ -222,10 +222,8 @@ CORs = np.insert(CORs, 0, 1., axis=0)
 q25 = np.percentile(RMSs[2:], 25, method='midpoint')  # for some reason I get a slightly different result with np.percentile
 q75 = np.percentile(RMSs[2:], 75, method='midpoint')
 
-# %%
-outliers = RMSs > q75*2  # not implemented yet
 # note I changed the first label to "Correct Answer"
-labels = ['Correct Answer','RAW','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30']
+labels = ['Correct Answer', 'Raw'] + [str(i) for i in range(1, 31)]
 
 plot_taylor(STDs, std_ref, CORs, labels,
             xmin=plot_params[variable]['xmin'],

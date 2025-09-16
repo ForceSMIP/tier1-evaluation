@@ -16,7 +16,14 @@ def seasonal_average(data, season, mode):
     data = data.copy()
     # if season is annual, do calculation and return result
     if season == 'annual':
-        return data.groupby(data.time.dt.year).mean("time")
+        # take min/mean/max by year
+        if mode == 'mean':
+            data_out = data.groupby(data.time.dt.year).mean("time")
+        elif mode == 'min':
+            data_out = data.groupby(data.time.dt.year).min("time")
+        elif mode == 'max':
+            data_out = data.groupby(data.time.dt.year).max("time")
+        return data_out
     # get vectors of years / months
     months = data.time.dt.month
     # we skip the first JF and use the first full DJF average
@@ -52,7 +59,7 @@ def seasonal_average(data, season, mode):
     elif mode == 'min':
         data_out = data_season.groupby(data_season.time.dt.year).min("time")
     elif mode == 'max':
-        data_out = data_season.groupby(data_season.time.dt.year).min("time")
+        data_out = data_season.groupby(data_season.time.dt.year).max("time")
     # remove extra year from DJF calculation
     data_out = data_out.sel(year=list(set(years.values)))
     return data_out
