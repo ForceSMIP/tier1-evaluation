@@ -1,0 +1,234 @@
+# %% imports
+import xcdat as xc
+import glob
+import numpy as np
+import xarray as xr
+from fx import get_delta_trend, seasonal_average, global_mean, plot_taylor
+
+# %% Parameters
+variable = 'tas'
+dpath = '/global/cfs/cdirs/m4581/pochedls/ForceSMIP_Tier1_final/'
+members = ['1B','1D','1E','1G','1J']
+season = 'annual' # annual, DJF, MAM, JJA, SON
+obs_member = '1I'
+startyear = 1980
+endyear = 2022
+
+# loop up dictionaries
+variableDict = {'monmaxtasmax': 'tasmax',
+                'monmaxpr': 'pr',
+                'monmintasmin': 'tasmin',
+                'zmta': 'ta'}
+plot_params = {'tos': {'xmin': 0.6, 'xmax': 1.3, 'ymax': 0.7, 'cmax': 0.8, 'cticks': 25},
+               'tas': {'xmin': 0.6, 'xmax': 1.2, 'ymax': 0.55, 'cmax': 0.7, 'cticks': 22},
+               'pr': {'xmin': 0., 'xmax': 1.3, 'ymax': 2.15, 'cmax': 2.4, 'cticks': 25},
+               'psl': {'xmin': 0., 'xmax': 1.3, 'ymax': 1.4, 'cmax': 1.8, 'cticks': 19},
+               'monmaxpr': {'xmin': 0., 'xmax': 1.3, 'ymax': 3.32, 'cmax': 3.6, 'cticks': 19},
+               'monmaxtasmax': {'xmin': 0.6, 'xmax': 1.2, 'ymax': 0.57, 'cmax': 0.7, 'cticks': 22},
+               'monmintasmin': {'xmin': 0.4, 'xmax': 1.3, 'ymax': 0.8, 'cmax': 1., 'cticks': 21},
+               'zmta': {'xmin': 0.9, 'xmax': 1.2, 'ymax': 0.4, 'cmax': 0.45, 'cticks': 19}}
+
+# %% get files
+submission_files = glob.glob(dpath + 'submissions_standardized/*nc')
+emean_files = glob.glob(dpath + 'ensmeans/*nc')
+ref_files = glob.glob(dpath + 'Evaluation-Tier1/*nc')
+
+# get variable id
+if variable in variableDict.keys():
+    varnam = variableDict[variable]
+else:
+    varnam = variable
+
+# %% loop over members of interest
+for j, member in enumerate(members):
+    print(str(j+1) + ' / ' + str(len(members)) + ': ' + member)
+    # get simplicity order
+    if variable == 'zmta':
+        simplicity_order = [np.nan, 2, 1, 12, 13, 17, 18, 14, 10, 15, 16, 4, np.nan, 8, 9, np.nan, 19, 20, 3, np.nan, np.nan, 5, 11, np.nan, 22, 21, np.nan, 6, 7, np.nan]
+    else:
+        simplicity_order = [27, 3, 1, 16, 17, 21, 22, 18, 14, 19, 20, 7, 8, 12, 13, 26, 23, 28, 5, 24, 2, 9, 15, 6, 30, 29, 25, 10, 11, 4]
+    # get submission, ensemble mean, and reference files
+    submission_file = [fn for fn in submission_files if '/' + variable + '_' + member in fn][0]
+    ## NOTE: Why do we take 1A if it is obs?
+    ## I assume this lets the rest of the code run and you just ignore some
+    ## results for observations?
+    emean_file = [fn for fn in emean_files if '/' + member + '.' + variable + '.' in fn]
+    if member == obs_member:
+        emean_file = [fn for fn in emean_files if '/' + '1A' + '.' + variable + '.' in fn][0]
+    else:
+        emean_file = emean_file[0]
+    ref_file = [fn for fn in [fn for fn in ref_files if '/' + variable + '_' in fn] if '_' + member + '.' in fn][0]
+
+    # Load Data
+    dss = xc.open_dataset(submission_file)
+    fields = dss['forced_component'].load()
+    dse = xc.open_dataset(emean_file)
+    field_emean = dse['arr_EM'].load()
+    dsr = xc.open_dataset(ref_file)
+    field_ref = dsr[varnam].load()
+
+    # ensure fields are masked as appropriate
+    ## Note: How do we know we should mask zero?
+    fields = fields.where(fields != 0., np.nan)
+    fields = fields.where(fields < 1e10, np.nan)
+    field_emean = field_emean.where(field_emean != 0., np.nan)
+    field_emean = field_emean.where(field_emean < 1e10, np.nan)
+    field_ref = field_ref.where(field_ref != 0., np.nan)
+    field_ref = field_ref.where(field_ref < 1e10, np.nan)
+
+    # Re-order data in simplicity order
+    nanmember = fields.isel(member=0).copy()
+    nanmember[:] = np.nan
+    tmp = []
+    ## Note: need to test this for zmta
+    for im in simplicity_order:
+        if np.isnan(im):
+            tmp.append(nanmember)
+        else:
+            tmp.append(fields.isel(member=im-1))
+    fields = xr.concat(tmp, dim='member')
+
+    # get monthly departures
+    climref = field_ref.groupby('time.month').mean(dim='time')
+    if (('max' in variable) | ('min' in variable)):
+        fields = fields.groupby('time.month') - fields.groupby('time.month').mean(dim='time')
+        field_emean = field_emean.groupby('time.month') - field_emean.groupby('time.month').mean(dim='time')
+        field_ref = field_ref.groupby('time.month') - field_ref.groupby('time.month').mean(dim='time')
+        fields = fields.groupby('time.month')  + climref
+        field_emean = field_emean.groupby('time.month') + climref
+        field_ref = field_ref.groupby('time.month') + climref
+    else:
+        fields = fields.groupby('time.month') - fields.groupby('time.month').mean(dim='time')
+        field_emean = field_emean.groupby('time.month') - field_emean.groupby('time.month').mean(dim='time')
+        field_ref = field_ref.groupby('time.month') - field_ref.groupby('time.month').mean(dim='time')
+
+    # select aggregation mode
+    if 'max' in variable:
+        mode = 'max'
+    elif 'min' in variable:
+        mode = 'min'
+    else:
+        mode = 'mean'
+
+    # Get seasonal averages
+    field_ref = seasonal_average(field_ref, season, mode)
+    field_emean = seasonal_average(field_emean, season, mode)
+    fields_seasonal = seasonal_average(fields, season, mode)
+
+    # get trends
+    if season == 'DJF':
+        trends = get_delta_trend(fields_seasonal, startyear+1, endyear)
+        trend_ref = get_delta_trend(field_ref, startyear+1, endyear)
+        trend_emean = get_delta_trend(field_emean, startyear+1, endyear).squeeze()
+    else:
+        trends = get_delta_trend(fields_seasonal, startyear, endyear)
+        trend_ref = get_delta_trend(field_ref, startyear, endyear)
+        trend_emean = get_delta_trend(field_emean, startyear, endyear).squeeze()
+    # ensure common mask
+    if variable in ('tos', 'zmta'):
+        if variable == 'zmta':
+            if ((np.any(np.abs(trend_ref.plev.values - trends.plev.values) > 1E-7)) | (np.any(np.abs(trend_emean.plev.values - trends.plev.values) > 1E-7))):
+                raise ValueError('plev coordinates do not match')
+            else:
+                trend_ref['plev'] = trends.plev
+                trend_emean['plev'] = trends.plev
+        trends = xr.where(~np.isnan(trend_ref), trends, np.nan)
+        trend_emean = xr.where(~np.isnan(trend_ref), trend_emean, np.nan)
+
+    # pre-allocate
+    if j == 0:
+        rmse_ref = np.zeros(len(members))
+        rmse_all = np.zeros((len(trends.member), len(members)))
+        std_emean = np.zeros(len(members))
+        std_ref = np.zeros(len(members))
+        std_all = np.zeros((len(trends.member), len(members)))
+        corr_ref = np.zeros(len(members))
+        corr_all = np.zeros((len(trends.member), len(members)))
+
+    # compute stats
+    rmse_ref[j] = np.sqrt(global_mean((trend_emean-trend_ref)**2))
+    rmse_all[:, j] = np.sqrt(global_mean((trend_emean-trends)**2))
+
+    std_emean[j] = np.sqrt(global_mean(trend_emean**2))
+    std_ref[j] = np.sqrt(global_mean(trend_ref**2))
+    std_all[:, j] = np.sqrt(global_mean((trends)**2))
+
+    corr_ref[j] = float(global_mean(trend_emean*trend_ref/np.sqrt(global_mean(trend_emean**2)*global_mean(trend_ref**2))).values)
+    corr_all[:, j] = global_mean(trend_emean*trends/np.sqrt(global_mean(trend_emean**2)*global_mean(trends**2))).values
+
+# # %% Process Observations
+# submission_file = [fn for fn in submission_files if '/' + variable + '_' + obs_member in fn][0]
+# ref_file = [fn for fn in [fn for fn in ref_files if '/' + variable + '_' in fn] if '_' + obs_member + '.' in fn][0]
+# ## There is some logic about choosing monmax if the variable is pr ???
+# # Load data
+# dss = xc.open_dataset(submission_file)
+# fields = dss['forced_component'].load()
+# dsr = xc.open_dataset(ref_file)
+# field_ref = dsr[varnam].load()
+
+# # ensure fields are masked as appropriate
+# ## Note: How do we know we should mask zero?
+# fields = fields.where(fields != 0., np.nan)
+# fields = fields.where(fields < 1e10, np.nan)
+# field_ref = field_ref.where(field_ref != 0., np.nan)
+# field_ref = field_ref.where(field_ref < 1e10, np.nan)
+
+# # Re-order data in simplicity order
+# # note: need to revisit this for zmta which has nan values
+# nanmember = fields.isel(member=0).copy()
+# nanmember[:] = np.nan
+# tmp = []
+# nm = 0
+# ## Note: need to test this for zmta
+# for im in simplicity_order:
+#     if np.isnan(im):
+#         nanmember.member = 'nanmember' + str(nm)
+#         nm += 1
+#         tmp.append(nanmember)
+#     else:
+#         tmp.append(fields.isel(member=im-1))
+# fields = xr.concat(tmp, dim='member')
+
+# # Get seasonal averages
+# field_ref = seasonal_average(field_ref, season, mode)
+# fields_seasonal = seasonal_average(fields, season, mode)
+
+# # get trends
+# trends = get_delta_trend(fields_seasonal, startyear, endyear)
+# trend_ref = get_delta_trend(field_ref, startyear, endyear)
+
+# # ensure common mask
+# if variable in ('tos', 'zmta'):
+#     trends = xr.where(~np.isnan(trend_ref), trends, np.nan)
+
+# %% normalized before averaging
+std_ref = np.sqrt(np.mean((std_ref/std_emean)**2))
+std_all = np.sqrt(np.mean((std_all/std_emean)**2, axis=1))
+
+rmse_ref = np.sqrt(np.mean((rmse_ref/std_emean)**2))
+rmse_all = np.sqrt(np.mean((rmse_all/std_emean)**2, axis=1))
+
+std_emean = np.sqrt(np.mean(std_emean**2));
+
+# % not used in Taylor diagram
+corr_ref = np.sqrt(np.mean(corr_ref**2));
+corr_all = np.sqrt(np.mean(corr_all**2, axis=1));
+
+# %% compile statistics for tailor diagram
+STDs = np.array([1, std_ref] + list(std_all))
+RMSs = np.array([0, rmse_ref] + list(rmse_all))
+CORs = (STDs[1:]**2 + STDs[0]**2 - RMSs[1:]**2 )/ (2*STDs[1:]*STDs[0])
+CORs = np.insert(CORs, 0, 1., axis=0)
+q25 = np.percentile(RMSs[2:], 25, method='midpoint')  # for some reason I get a slightly different result with np.percentile
+q75 = np.percentile(RMSs[2:], 75, method='midpoint')
+
+# note I changed the first label to "Correct Answer"
+labels = ['Correct Answer', 'Raw'] + [str(i) for i in range(1, 31)]
+
+plot_taylor(STDs, std_ref, CORs, labels,
+            xmin=plot_params[variable]['xmin'],
+            xmax=plot_params[variable]['xmax'],
+            ymax=plot_params[variable]['ymax'],
+            cmax=plot_params[variable]['cmax'],
+            cticks=plot_params[variable]['cticks'])
+
