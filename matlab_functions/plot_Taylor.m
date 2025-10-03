@@ -62,15 +62,13 @@ hold on; contour(xi_hi',yi_hi,(fred_rmse>fred_pcorr)',[0.5 0.5],':','color','w',
 % here the information about the type of tier 1 methods is hard-coded
 hold on; plot(x(2:18),y(2:18),'ko','markerfacecolor','k','markersize',6);
 hold on; plot(x(19:end),y(19:end),'kd','markerfacecolor','k','markersize',6);
+% zmta
+%hold on; plot(x(2:15),y(2:15),'ko','markerfacecolor','k','markersize',6);
+%hold on; plot(x(16:end),y(16:end),'kd','markerfacecolor','k','markersize',6);
 
 if nargin > 3
-    if xmax<2
-        dx = xmax/160;
-        dy = ymax/160;
-    else
-        dx = xmax/80;
-        dy = ymax/80;
-    end
+    dx = (xmax-xmin)/100;
+    dy = ymax/100;
     text(x+dx,y+dy,labels,'fontsize',13)
 end
 
