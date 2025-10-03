@@ -3,7 +3,7 @@
 % to be run after ForceSMIP_index_skill.m
 
 index = 1:30; 
-examples = [6 7 21 24 25];
+examples = [6 7 18 24 25];
 
 switch length(index_ref)
     case 73

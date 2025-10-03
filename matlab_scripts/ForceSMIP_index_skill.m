@@ -1,7 +1,7 @@
 
-% Used to make Fig. 7 of Wills et al. 2025
+% Used to make Fig. 7 of Wills et al. 2025, Forced Component Estimation Statistical Method Intercomparison Project (ForceSMIP)
 
-variable = 'tos'; % 'tos','tas','pr','psl','monmaxpr','monmaxtasmax','monmintasmin','zmta'
+variable = 'pr'; % 'tos','tas','pr','psl','monmaxpr','monmaxtasmax','monmintasmin','zmta'
 
 switch variable % Sahel precip uses MJJAS, Aleutian Low SLP uses DJF, otherwise annual mean
     case 'pr'
@@ -12,7 +12,7 @@ switch variable % Sahel precip uses MJJAS, Aleutian Low SLP uses DJF, otherwise 
         season = 1:12;
 end
 
-submission_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/submissions-Tier1-standardized-estimates');
+submission_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/submissions-Tier1-estimates');
 emean_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/ensmeans-Tier1');
 ref_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/Evaluation-Tier1');
 
@@ -73,20 +73,13 @@ for j = 1:length(member)
     else
         [fields,lat,lon,time] = get_avg_field_nd(submission_file,{'forced_component','lat','lon','time'});
     end
-    try
-        field_emean = get_avg_field_nd(emean_file,'arr_EM');
-    catch
-        field_emean = get_avg_field_nd(emean_file,'tos'); % not necessary if I get this file (1E tos) from Adam
-    end
+    field_emean = get_avg_field_nd(emean_file,'arr_EM');
     field_emean = squeeze(field_emean);
     field_ref = get_avg_field_nd(ref_file,varnam);
     
     fields(abs(fields)>1e10) = nan;
-    fields(fields==0) = nan;
     field_emean(abs(field_emean)>1e10) = nan;
-    field_emean(field_emean==0) = nan;
     field_ref(abs(field_ref)>1e10) = nan;
-    field_ref(field_ref==0) = nan;
     if strcmp(variable,'zmta')
         tmp = fields;
         for i = 1:length(simplicity_order)
@@ -108,10 +101,10 @@ for j = 1:length(member)
 
     % compute seasonal climatologies and anomalies
     for n = 1:12
-        clim_ref(:,:,n) = mean(field_ref(:,:,n:12:end),3);
-        field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - mean(field_ref(:,:,n:12:end),3);
-        field_emean(:,:,n:12:end) = field_emean(:,:,n:12:end) - mean(field_emean(:,:,n:12:end),3);
-        fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - mean(fields(:,:,n:12:end,:),3);
+        clim_ref(:,:,n) = nanmean(field_ref(:,:,n:12:end),3);
+        field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - nanmean(field_ref(:,:,n:12:end),3);
+        field_emean(:,:,n:12:end) = field_emean(:,:,n:12:end) - nanmean(field_emean(:,:,n:12:end),3);
+        fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - nanmean(fields(:,:,n:12:end,:),3);
     end
 
     if contains(variable,'max')
@@ -155,17 +148,17 @@ for j = 1:length(member)
                 index_all(:,i) = rmean(squeeze(fields_seasonal(closest(lon,360-105.27),closest(lat,40.01),:,i)),30);
             end
         case 'tos' % Nino34 minus GMSST
-%             index_emean = rmean(mean_in_a_box(lon,lat,field_emean,[-5 5],[170 240])-global_mean(lon,lat,field_emean),10);
-%             index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[-5 5],[170 240])-global_mean(lon,lat,field_ref),10);
-%             for i = 1:size(fields,4)
-%                 index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[-5 5],[170 240])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
-%             end
-            % NASSTI minus GMSST
-            index_emean = rmean(mean_in_a_box(lon,lat,field_emean,[0 60],[280 360])-global_mean(lon,lat,field_emean),10);
-            index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[0 60],[280 360])-global_mean(lon,lat,field_ref),10);
+            index_emean = rmean(mean_in_a_box(lon,lat,field_emean,[-5 5],[170 240])-global_mean(lon,lat,field_emean),10);
+            index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[-5 5],[170 240])-global_mean(lon,lat,field_ref),10);
             for i = 1:size(fields,4)
-                index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[0 60],[280 360])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
+                index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[-5 5],[170 240])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
             end
+%             % NASSTI minus GMSST
+%             index_emean = rmean(mean_in_a_box(lon,lat,field_emean,[0 60],[280 360])-global_mean(lon,lat,field_emean),10);
+%             index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[0 60],[280 360])-global_mean(lon,lat,field_ref),10);
+%             for i = 1:size(fields,4)
+%                 index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[0 60],[280 360])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
+%             end
         case 'pr' % Sahel rainfall
             index_emean = rmean(mean_in_a_box(lon,lat,field_emean,[10 20],[340 10]),10);
             index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[10 20],[340 10]),10);
@@ -224,9 +217,7 @@ else
 end
 field_ref = get_avg_field_nd(ref_file,varnam);
 fields(abs(fields)>1e10) = nan;
-fields(fields==0) = nan;
 field_ref(abs(field_ref)>1e10) = nan;
-field_ref(field_ref==0) = nan;
 if strcmp(variable,'zmta')
     tmp = fields;
     for i = 1:length(simplicity_order)
@@ -248,9 +239,9 @@ months = repmat(1:12,[1 nyr]);
 years = floor(1950+1/24:1/12:2022.99);
 
 for n = 1:12
-    clim_ref(:,:,n) = mean(field_ref(:,:,n:12:end),3);
-    field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - mean(field_ref(:,:,n:12:end),3);
-    fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - mean(fields(:,:,n:12:end,:),3);
+    clim_ref(:,:,n) = nanmean(field_ref(:,:,n:12:end),3);
+    field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - nanmean(field_ref(:,:,n:12:end),3);
+    fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - nanmean(fields(:,:,n:12:end,:),3);
 end
 
 if contains(variable,'max')
@@ -288,14 +279,15 @@ switch variable
             index_all(:,i) = rmean(squeeze(fields_seasonal(closest(lon,360-105.27),closest(lat,40.01),:,i)),30);
         end
     case 'tos' % Nino34 minus GMSST
-%         index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[-5 5],[170 240])-global_mean(lon,lat,field_ref),10);
-%         for i = 1:size(fields,4)
-%             index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[-5 5],[170 240])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
-%         end
-        index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[0 60],[280 360])-global_mean(lon,lat,field_ref),10);
+        index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[-5 5],[170 240])-global_mean(lon,lat,field_ref),10);
         for i = 1:size(fields,4)
-            index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[0 60],[280 360])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
+            index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[-5 5],[170 240])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
         end
+%         % NASSTI minus GMSST
+%         index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[0 60],[280 360])-global_mean(lon,lat,field_ref),10);
+%         for i = 1:size(fields,4)
+%             index_all(:,i)  = rmean(mean_in_a_box(lon,lat,fields_seasonal(:,:,:,i),[0 60],[280 360])-global_mean(lon,lat,fields_seasonal(:,:,:,i)),10);
+%         end
     case 'pr' % Sahel rainfall
         index_ref = rmean(mean_in_a_box(lon,lat,field_ref,[10 20],[340 10]),10);
         for i = 1:size(fields,4)

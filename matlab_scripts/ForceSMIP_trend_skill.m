@@ -1,5 +1,5 @@
 
-% Used to make Figs. 1j, 2j, 3, 4, and S2 of Wills et al. 2025
+% Used to make Figs. 1j, 2j, 3, 4, S2, and S3 of Wills et al. 2025, Forced Component Estimation Statistical Method Intercomparison Project (ForceSMIP)
 % The other panels of Figs. 1 and 2 can be made by pausing at l. 161 and
 % plotting trend_ref, trends(:,:,i), and trends(:,:,i)-trend_ref
 % Figs. 8-10 can be made by plotting trend_ref, trends(:,:,i), and trends(:,:,i)-trend_ref
@@ -83,11 +83,8 @@ for j = 1:length(member)
     field_ref = get_avg_field_nd(ref_file,varnam);
     
     fields(abs(fields)>1e10) = nan;
-    fields(fields==0) = nan;
     field_emean(abs(field_emean)>1e10) = nan;
-    field_emean(field_emean==0) = nan;
     field_ref(abs(field_ref)>1e10) = nan;
-    field_ref(field_ref==0) = nan;
     if strcmp(variable,'zmta')
         tmp = fields;
         for i = 1:length(simplicity_order)
@@ -111,10 +108,10 @@ for j = 1:length(member)
 
     % compute seasonal climatologies and anomalies
     for n = 1:12
-        clim_ref(:,:,n) = mean(field_ref(:,:,n:12:end),3);
-        field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - mean(field_ref(:,:,n:12:end),3);
-        field_emean(:,:,n:12:end) = field_emean(:,:,n:12:end) - mean(field_emean(:,:,n:12:end),3);
-        fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - mean(fields(:,:,n:12:end,:),3);
+        clim_ref(:,:,n) = nanmean(field_ref(:,:,n:12:end),3);
+        field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - nanmean(field_ref(:,:,n:12:end),3);
+        field_emean(:,:,n:12:end) = field_emean(:,:,n:12:end) - nanmean(field_emean(:,:,n:12:end),3);
+        fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - nanmean(fields(:,:,n:12:end,:),3);
     end
 
     if contains(variable,'max')
@@ -202,9 +199,7 @@ else
 end
 field_ref = get_avg_field_nd(ref_file,varnam);
 fields(abs(fields)>1e10) = nan;
-fields(fields==0) = nan;
 field_ref(abs(field_ref)>1e10) = nan;
-field_ref(field_ref==0) = nan;
 if strcmp(variable,'zmta')
     tmp = fields;
     for i = 1:length(simplicity_order)
@@ -226,9 +221,9 @@ months = repmat(1:12,[1 nyr]);
 years = floor(1950+1/24:1/12:2022.99);
 
 for n = 1:12
-    clim_ref(:,:,n) = mean(field_ref(:,:,n:12:end),3);
-    field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - mean(field_ref(:,:,n:12:end),3);
-    fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - mean(fields(:,:,n:12:end,:),3);
+    clim_ref(:,:,n) = nanmean(field_ref(:,:,n:12:end),3);
+    field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - nanmean(field_ref(:,:,n:12:end),3);
+    fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - nanmean(fields(:,:,n:12:end,:),3);
 end
 
 if contains(variable,'max')
@@ -312,6 +307,8 @@ if startyear == 1980
             plot_Taylor(STDs(2:end),1,CORs(2:end),labels(2:end),0.6,1.2,0.57,0.7,21) 
             plot_Taylor(STDs(2:end),1,CORs(2:end),labels(2:end),0.6,1.3,0.7,0.8,25)
             pretty_figure(700,650,'none','none','none','none',16);
+            %plot_Taylor(STDs(2:end),1,CORs(2:end),labels(2:end),0.6,1.4,0.95,1.05,22) % trend length
+            %plot_Taylor(STDs(2:end),1,CORs(2:end),labels(2:end),0.5,1.7,0.73,1,21) % individual models
         case 'tas'
             plot_Taylor(STDs(2:end),1,CORs(2:end),labels(2:end),0.6,1.2,0.55,0.7,22) 
         case 'pr'

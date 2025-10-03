@@ -1,4 +1,6 @@
 
+% Used to make Fig. 6 of Wills et al. 2025, Forced Component Estimation Statistical Method Intercomparison Project (ForceSMIP)
+
 variables = {'tos','tas','pr','psl','monmaxpr','monmaxtasmax','monmintasmin','zmta'};
 season = 1:12;
 
@@ -7,7 +9,7 @@ member = {'1B','1D','1E','1G','1J'};
 for k = 1:length(variables)
     variable = variables{k};
 
-    submission_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/submissions-Tier1-standardized-estimates');
+    submission_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/submissions-Tier1-estimates');
     emean_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/ensmeans-Tier1');
     ref_files = get_files('/Users/rjnglin/Data/ForceSMIP/ForceSMIP_Tier1_final/Evaluation-Tier1');
 
@@ -62,20 +64,14 @@ for k = 1:length(variables)
         else
             [fields,lat,lon,time] = get_avg_field_nd(submission_file,{'forced_component','lat','lon','time'});
         end
-        try
-            field_emean = get_avg_field_nd(emean_file,'arr_EM');
-        catch
-            field_emean = get_avg_field_nd(emean_file,'tos'); % not necessary if I get this file (1E tos) from Adam
-        end
+        field_emean = get_avg_field_nd(emean_file,'arr_EM');
         field_emean = squeeze(field_emean);
         field_ref = get_avg_field_nd(ref_file,varnam);
 
         fields(abs(fields)>1e10) = nan;
-        fields(fields==0) = nan;
         field_emean(abs(field_emean)>1e10) = nan;
-        field_emean(field_emean==0) = nan;
         field_ref(abs(field_ref)>1e10) = nan;
-        field_ref(field_ref==0) = nan;
+
         if strcmp(variable,'zmta')
             tmp = fields;
             for i = 1:length(simplicity_order)
@@ -98,10 +94,10 @@ for k = 1:length(variables)
         clear clim_ref
 
         for n = 1:12
-            clim_ref(:,:,n) = mean(field_ref(:,:,n:12:end),3);
-            field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - mean(field_ref(:,:,n:12:end),3);
-            field_emean(:,:,n:12:end) = field_emean(:,:,n:12:end) - mean(field_emean(:,:,n:12:end),3);
-            fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - mean(fields(:,:,n:12:end,:),3);
+            clim_ref(:,:,n) = nanmean(field_ref(:,:,n:12:end),3);
+            field_ref(:,:,n:12:end) = field_ref(:,:,n:12:end) - nanmean(field_ref(:,:,n:12:end),3);
+            field_emean(:,:,n:12:end) = field_emean(:,:,n:12:end) - nanmean(field_emean(:,:,n:12:end),3);
+            fields(:,:,n:12:end,:) = fields(:,:,n:12:end,:) - nanmean(fields(:,:,n:12:end,:),3);
         end
 
         if contains(variable,'max')
@@ -138,9 +134,9 @@ for k = 1:length(variables)
 
         % centering needed to take back out climatological values (for
         % extremes)
-        field_ref = field_ref - mean(field_ref,3);
-        field_emean = field_emean - mean(field_emean,3);
-        fields = fields - mean(fields,3);
+        field_ref = field_ref - nanmean(field_ref,3);
+        field_emean = field_emean - nanmean(field_emean,3);
+        fields = fields - nanmean(fields,3);
         
         for i = 1:s(4)
             if strcmp(variable,'zmta')

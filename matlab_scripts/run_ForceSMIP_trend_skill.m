@@ -1,5 +1,6 @@
 
-% Used to make Figs. 11 and S3 of Wills et al. 2025
+% Used to make Figs. 11 and S4 of Wills et al. 2025, Forced Component Estimation Statistical Method Intercomparison Project (ForceSMIP)
+% comment out the "variable = 'tos';" line of ForceSMIP_trend_skill.m before running
 
 variables = {'tos','tas','pr','psl','monmaxpr','monmaxtasmax','monmintasmin','zmta'};
 
@@ -7,7 +8,7 @@ index = 1:30;
 
 for k = 1:length(variables)
     variable = variables{k};
-    ForceSMIP_trend_skill % make sure first line (specifying variable) is commented out
+    ForceSMIP_trend_skill 
     switch variable
         case 'tos'
             ctrs = linspace(-2,2,25);
@@ -81,10 +82,11 @@ for k = 1:length(variables)
 end
 
 year = 1950:2022;
-ncbulkexport_multidimensional('ForceSMIP_Tier1_OBS_estimate.nc',lon,'lon',lat,'lat',year,'year',{tos_raw,tos_trainingEM,tos_method_mean,tas_raw,tas_trainingEM,tas_method_mean, ...
-    psl_raw,psl_trainingEM,psl_method_mean,pr_raw,pr_trainingEM,pr_method_mean,monmaxtasmax_raw,monmaxtasmax_trainingEM,monmaxtasmax_method_mean, ...
-    monmintasmin_raw,monmintasmin_trainingEM,monmintasmin_method_mean,monmaxpr_raw,monmaxpr_trainingEM,monmaxpr_method_mean}, ...
-    {'tos_raw','tos_trainingEM','tos_method_mean','tas_raw','tas_trainingEM','tas_method_mean', ...
-    'psl_raw','psl_trainingEM','psl_method_mean','pr_raw','pr_trainingEM','pr_method_mean','monmaxtasmax_raw','monmaxtasmax_trainingEM','monmaxtasmax_method_mean', ...
-    'monmintasmin_raw','monmintasmin_trainingEM','monmintasmin_method_mean','monmaxpr_raw','monmaxpr_trainingEM','monmaxpr_method_mean'});
+
+% ncbulkexport_multidimensional('ForceSMIP_Tier1_OBS_estimate.nc',lon,'lon',lat,'lat',year,'year',{tos_raw,tos_trainingEM,tos_method_mean,tas_raw,tas_trainingEM,tas_method_mean, ...
+%     psl_raw,psl_trainingEM,psl_method_mean,pr_raw,pr_trainingEM,pr_method_mean,monmaxtasmax_raw,monmaxtasmax_trainingEM,monmaxtasmax_method_mean, ...
+%     monmintasmin_raw,monmintasmin_trainingEM,monmintasmin_method_mean,monmaxpr_raw,monmaxpr_trainingEM,monmaxpr_method_mean}, ...
+%     {'tos_raw','tos_trainingEM','tos_method_mean','tas_raw','tas_trainingEM','tas_method_mean', ...
+%     'psl_raw','psl_trainingEM','psl_method_mean','pr_raw','pr_trainingEM','pr_method_mean','monmaxtasmax_raw','monmaxtasmax_trainingEM','monmaxtasmax_method_mean', ...
+%     'monmintasmin_raw','monmintasmin_trainingEM','monmintasmin_method_mean','monmaxpr_raw','monmaxpr_trainingEM','monmaxpr_method_mean'});
 

@@ -1,5 +1,5 @@
 
-% Used to make Figs. A1-A3 of Wills et al. 2025
+% Used to make Figs. A1-A3 of Wills et al. 2025, Forced Component Estimation Statistical Method Intercomparison Project (ForceSMIP)
 % to be run after ForceSMIP_trend_skill.m
 
 index = 1:30;
