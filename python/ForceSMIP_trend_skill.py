@@ -51,7 +51,6 @@ for j, member in enumerate(members):
     submission_file = [fn for fn in submission_files if '/' + variable + '_' + member in fn][0]
     ## NOTE: Why do we take 1A if it is obs?
     ## I assume this lets the rest of the code run and you just ignore some
-    ## results for observations?
     emean_file = [fn for fn in emean_files if '/' + member + '.' + variable + '.' in fn]
     if member == obs_member:
         emean_file = [fn for fn in emean_files if '/' + '1A' + '.' + variable + '.' in fn][0]
@@ -73,14 +72,13 @@ for j, member in enumerate(members):
     fields = fields.where(fields < 1e10, np.nan)
     field_emean = field_emean.where(field_emean != 0., np.nan)
     field_emean = field_emean.where(field_emean < 1e10, np.nan)
-    field_ref = field_ref.where(field_ref != 0., np.nan)
+    # field_ref = field_ref.where(field_ref != 0., np.nan)
     field_ref = field_ref.where(field_ref < 1e10, np.nan)
 
     # Re-order data in simplicity order
     nanmember = fields.isel(member=0).copy()
     nanmember[:] = np.nan
     tmp = []
-    ## Note: need to test this for zmta
     for im in simplicity_order:
         if np.isnan(im):
             tmp.append(nanmember)
@@ -156,51 +154,6 @@ for j, member in enumerate(members):
     corr_ref[j] = float(global_mean(trend_emean*trend_ref/np.sqrt(global_mean(trend_emean**2)*global_mean(trend_ref**2))).values)
     corr_all[:, j] = global_mean(trend_emean*trends/np.sqrt(global_mean(trend_emean**2)*global_mean(trends**2))).values
 
-# # %% Process Observations
-# submission_file = [fn for fn in submission_files if '/' + variable + '_' + obs_member in fn][0]
-# ref_file = [fn for fn in [fn for fn in ref_files if '/' + variable + '_' in fn] if '_' + obs_member + '.' in fn][0]
-# ## There is some logic about choosing monmax if the variable is pr ???
-# # Load data
-# dss = xc.open_dataset(submission_file)
-# fields = dss['forced_component'].load()
-# dsr = xc.open_dataset(ref_file)
-# field_ref = dsr[varnam].load()
-
-# # ensure fields are masked as appropriate
-# ## Note: How do we know we should mask zero?
-# fields = fields.where(fields != 0., np.nan)
-# fields = fields.where(fields < 1e10, np.nan)
-# field_ref = field_ref.where(field_ref != 0., np.nan)
-# field_ref = field_ref.where(field_ref < 1e10, np.nan)
-
-# # Re-order data in simplicity order
-# # note: need to revisit this for zmta which has nan values
-# nanmember = fields.isel(member=0).copy()
-# nanmember[:] = np.nan
-# tmp = []
-# nm = 0
-# ## Note: need to test this for zmta
-# for im in simplicity_order:
-#     if np.isnan(im):
-#         nanmember.member = 'nanmember' + str(nm)
-#         nm += 1
-#         tmp.append(nanmember)
-#     else:
-#         tmp.append(fields.isel(member=im-1))
-# fields = xr.concat(tmp, dim='member')
-
-# # Get seasonal averages
-# field_ref = seasonal_average(field_ref, season, mode)
-# fields_seasonal = seasonal_average(fields, season, mode)
-
-# # get trends
-# trends = get_delta_trend(fields_seasonal, startyear, endyear)
-# trend_ref = get_delta_trend(field_ref, startyear, endyear)
-
-# # ensure common mask
-# if variable in ('tos', 'zmta'):
-#     trends = xr.where(~np.isnan(trend_ref), trends, np.nan)
-
 # %% normalized before averaging
 std_ref = np.sqrt(np.mean((std_ref/std_emean)**2))
 std_all = np.sqrt(np.mean((std_all/std_emean)**2, axis=1))
@@ -210,10 +163,6 @@ rmse_all = np.sqrt(np.mean((rmse_all/std_emean)**2, axis=1))
 
 std_emean = np.sqrt(np.mean(std_emean**2));
 
-# % not used in Taylor diagram
-corr_ref = np.sqrt(np.mean(corr_ref**2));
-corr_all = np.sqrt(np.mean(corr_all**2, axis=1));
-
 # %% compile statistics for tailor diagram
 STDs = np.array([1, std_ref] + list(std_all))
 RMSs = np.array([0, rmse_ref] + list(rmse_all))
@@ -222,9 +171,8 @@ CORs = np.insert(CORs, 0, 1., axis=0)
 q25 = np.percentile(RMSs[2:], 25, method='midpoint')  # for some reason I get a slightly different result with np.percentile
 q75 = np.percentile(RMSs[2:], 75, method='midpoint')
 
-# note I changed the first label to "Correct Answer"
+# %% create taylor diagram
 labels = ['Correct Answer', 'Raw'] + [str(i) for i in range(1, 31)]
-
 plot_taylor(STDs, std_ref, CORs, labels,
             xmin=plot_params[variable]['xmin'],
             xmax=plot_params[variable]['xmax'],
